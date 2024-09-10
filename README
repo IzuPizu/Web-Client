@@ -1,0 +1,140 @@
+
+Nume: Ureche Andreea-Maria
+Grupa: 322CC
+
+
+--PCOM Tema4 - Web Client.Comunicatie cu REST API--
+
+Tema consta in realizarea unui client web in C/C++ care sa interactioneze cu un 
+REST API expus de un server web prin protocolul HTTP. 
+
+Clientul accepta comenzi de la tastatura si le trimite catre server,functionand ca 
+o interfata in CLI cu biblioteca virtuala.
+
+Comenzile acceptate in CLI sunt:
+- register 
+- login
+- enter_library
+- get_books
+- get_book
+- add_book
+- delete_book
+- logout
+- exit
+ 
+Pentru creearea si parsarea obiectelor JSON am folosit biblioteca parson pentru ca
+mi s-a parut mai simplu de folosit , lighweight(are doar 2 fisiere) si cu un API simplu:
+https://github.com/kgabis/parson 
+
+->Toate functiile elibereaza memoria alocata pentru variabilele locale si pentru obiectele JSON create
+ si se ocupa de afisarea mesajelor corespunzatoare in functie de status code-ul extras din raspunsul server-ului.
+
+->Pentru a verifica status code-ul am folosit un enum ce contine cele mai intalnite status code-uri
+ (preluate din laboratul 9 + https://http.cat/ )
+-> Scheletul de cod este preluat din laboratorul 9 (https://gitlab.cs.pub.ro/pcom/pcom-laboratoare-public/-/tree/master/lab9)
+ si adaptat pentru a corespunde cerintelor temei.
+-> Pentru creearea si parsarea obiectelor JSON am folosit exemplele din README-ul de la https://github.com/kgabis/parson 
+
+Descriere a functiilor:
+
+void register_account() ->  inregistrarea unui nou utilizator
+- se citesc de la tastatura username-ul si password-ul userului
+- se valideaza datele introduse : username-ul si parola NU trebuie sa contina spatii 
+- se creeaza un JSON value cu datele citite si se serializeaza 
+- se construieste un POST request  cu JSON string-ul si se deschide conexiunea cu severul
+- se trimite request-ul catre server
+- se asteapta raspunsul de la server si se verifica http status code-ul parsat din raspuns 
+    pentru a vedea daca inregistrarea s-a realizat cu succes sau nu.In functie de status code 
+    se afiseaza un mesaj corespunzator (SUCCES:.. / ERROR:<cod eroare>) , precum si mesajul
+    de eroare "Username already used" in cazul in care username-ul este deja folosit(http status code = 400).
+
+
+void login_account() -> logarea unui utilizator
+- se citesc de la tastatura username si password
+- se valideaza datele introduse : username-ul si parola NU trebuie sa contina spatii 
+- se creeaza un obiect JSON cu datele citite si se serializeaza
+- se construieste un POST request  cu JSON string-ul si se deschide conexiunea cu severul
+- se trimite request-ul catre server
+- se asteapta raspunsul de la server si se verifica http status code 
+    pentru a vedea daca inregistrarea s-a realizat cu succes sau nu.In functie de status code 
+    se afiseaza un mesaj corespunzator (SUCCES:.. / ERROR:<cod eroare>).
+    Daca logarea a avut loc cu succes, se extrage cookie-ul de sesiune din raspuns si se
+    salveaza in pointer-ul cookies .
+
+void enter_library() -> accesarea bibliotecii 
+- se creeza un GET request folsoind cookie-ul de sesiune salvat in functia de logare
+- se deschide conexiunea cu server-ul si se trimite un request GET catre server pentru a accesa biblioteca
+- se preia raspunsul de la server si se verifica status code-ul pentru a vedea daca s-a realizat cu succes
+    sau nu accesarea bibliotecii.In functie de status code se afiseaza un mesaj 
+    corespunzator (SUCCES:.. / ERROR:<cod eroare>)
+    Daca accesarea bibliotecii a avut loc cu succes, se extrage token-ul de acces din raspuns 
+    pentru a demonstra ca avem acces la biblioteca , si se salveaza in pointer-ul token . 
+
+void get_books() -> afisarea tuturor cartilor din biblioteca
+- se creeaza un GET request folosind token-ul de acces salvat in functia de accesare a bibliotecii
+    pentru a demonstra ca avem acces la biblioteca
+- se deschide conexiunea cu server-ul si se trimite un request GET catre server
+- se preia raspunsul de la server si se verifica http status code-ul pentru a vedea daca s-a realizat cu succes
+    sau nu accesarea bibliotecii.In functie de status code se afiseaza un mesaj 
+    corespunzator (SUCCES:.. / ERROR:<cod eroare>)
+    Daca accesarea cartilor a avut loc cu succes, se intoarce lista de obiecte json cu cartile din biblioteca
+    (se gaseste inceputul listei de carti in raspunsul primit de la server si se parseaza json body-ul , se extrage
+    json array-ul cu detaliile despre carti precum si numarul de carti din biblioteca iar apoi se
+    itereaza prin array si se afiseaza detaliile despre fiecare carte(id si title) respectand format-ul specificat)
+
+
+void get_book() -> afisarea unei carti din biblioteca
+- se citeste de la tastatura id-ul cartii pe care dorim sa o afisam
+- se apendeaza la URL id-ul cartii pentru a obtine URL-ul complet specific cartii
+- se creeaza un request GET catre server pentru a afisa cartea folosind si token-ul de acces
+- se deschide conexiunea cu server-ul si se trimite request-ul
+- se preia raspunsul de la server si se verifica http status code-ul pentru a vedea daca s-a realizat cu succes
+    sau nu accesarea bibliotecii.In functie de status code se afiseaza un mesaj 
+    corespunzator (SUCCES:.. / ERROR:<cod eroare>)
+    Daca accesarea cartii cu id-ul specificat a avut loc cu succes, 
+    se gaseste inceputul corpului json in raspunsul primit de la server si se parseaza json body-ul , se extrage
+    campurile cu detaliile despre carte iar apoi se se afiseaza detaliile despre  carte  respectand format-ul specificat.
+
+
+void add_book() -> adaugarea unei carti in biblioteca
+- se citesc de la tastatura datele cartii (title, author, genre, publisher, page_count)
+- se valideaza datele introduse : title, author, genre, publisher trebuie sa fie complete(sa nu avem campuri necompletate)
+ iar numarul de pagini trebuie sa fie un numar valid .
+- se creeaza un obiect JSON cu datele citite
+- se creeaza un request POST catre server folosind authorization header-ul cu token-ul si obiectul JSON 
+   si se deschide conexiunea cu server-ul
+- se preia raspunsul de la server si se verifica http status code-ul pentru a vedea daca s-a realizat cu succes
+    sau nu accesarea bibliotecii.In functie de status code se afiseaza un mesaj 
+    corespunzator (SUCCES:.. / ERROR:<cod eroare>) 
+
+void delete_book() -> stergerea unei carti din biblioteca
+- se citeste de la tastatura id-ul cartii pe care dorim sa o stergem
+- se apendeaza la URL id-ul cartii pentru a obtine URL-ul complet specific cartii
+- se trimite un request DELETE catre server pentru a sterge cartea folosind token-ul de acces si adresa completa
+- se verifica raspunul primit de la server si se afiseaza mesajul corespunzator in functie de status code
+    (SUCCES:.. / ERROR:<cod eroare>) in functie de status code-ul extras din raspunsul server-ului
+
+
+void logout_account() -> delogarea unui utilizator
+- se trimite un request GET catre server pentru a deloga utilizatorul folosind token-ul de acces
+si cookie-ul de sesiune 
+- se verifica raspunsul primit de la server si se afiseaza mesajul corespunzator in functie de status code
+    (SUCCES:.. / ERROR:<cod eroare>) in functie de status code-ul extras din raspunsul server-ului
+
+int main() -> functia main
+- foloseste 2 variabile boolene (exit_status si login_status) pentru a retine daca user-ul este logat si daca 
+s-a iesit din aplicatie (prin efectuarea comenzii exit).
+- foloseste 2 pointeri de tip char pentru a retine cookie-ul de sesiune si token-ul de acces
+Se deschide conexiunea cu server-ul si se asteapta comenzi de la tastatura pana cand se primeste comanda exit,
+moment in care exit_status devine true si se iese din bucla .
+Se citeste comanda de la tastatura si se apeleaza functia corespunzatoare comenzii introduse.
+Pentru aproape fiecare comanda , se verifica daca user-ul este logat sau nu si daca cookie-ul de sesiune este NULL sau nu.
+Daca user-ul este deja logat (login_status = true) acesta nu va putea efectua din nou comanda de login sau register.
+Daca user-ul nu este logat , acesta nu va putea accesa biblioteca sau sa se delogheze.
+Daca user-ul nu este logat si nu are acces la biblioteca, nu se vor putea efectua comenzile de 
+get_books , get_book , add_book , delete_book . 
+La intalnirea comenzii 'exit' , valoarea lui exit_status va deveni true , iar login_status va deveni false (user-ul nu mai este logat),
+iar conexiunea cu server-ul va fi inchisa.
+Daca utilizatorul introduce o comanda invalida , se va afisa mesajul de 'Invalid command' si se va incerca citirea unei noi comenzi.
+
+
